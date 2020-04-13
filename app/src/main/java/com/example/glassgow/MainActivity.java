@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        
         playBtn = findViewById(R.id.playBtn);
         pauseBtn = findViewById(R.id.pauseBtn);
         stopBtn = findViewById(R.id.stopBtn);
