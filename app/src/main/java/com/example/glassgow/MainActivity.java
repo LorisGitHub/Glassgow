@@ -14,14 +14,31 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.glassgow.ui.login.LoginActivity;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.HttpStack;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
+import com.google.gson.JsonObject;
 
+import org.json.JSONObject;
 import org.videolan.libvlc.LibVLC;
 import org.videolan.libvlc.MediaPlayer;
 import org.videolan.libvlc.Media;
 
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Locale;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -44,11 +61,16 @@ public class MainActivity extends AppCompatActivity {
 
     private SeekBar seekBar;
 
+    RequestQueue requestQueue;
+    String URL = "http://192.168.1.10:3019/parse";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        
+
+        this.requestQueue = Volley.newRequestQueue(getApplicationContext());
+
         playBtn = findViewById(R.id.playBtn);
         pauseBtn = findViewById(R.id.pauseBtn);
         stopBtn = findViewById(R.id.stopBtn);
@@ -143,7 +165,9 @@ public class MainActivity extends AppCompatActivity {
      * */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+
         super.onActivityResult(requestCode, resultCode, data);
+
         switch (requestCode) {
             case 666: {
                 if (resultCode == RESULT_OK && null != data) {
@@ -151,7 +175,28 @@ public class MainActivity extends AppCompatActivity {
                         ArrayList<String> result = data
                                 .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
                         String text = result.get(0);
-                        textOutput.setText(text);
+
+                        textOutput.setText(URL + "/" + text);
+
+                        JsonObjectRequest objectRequest = new JsonObjectRequest(
+                                Request.Method.GET,
+                                this.URL + "/" + text,
+                                null,
+                                new Response.Listener<JSONObject>() {
+                                    @Override
+                                    public void onResponse(JSONObject response) {
+                                        textView.setText(response.toString());
+                                    }
+                                },
+                                new Response.ErrorListener() {
+                                    @Override
+                                    public void onErrorResponse(VolleyError error) {
+                                        textView.setText(error.toString());
+                                    }
+                                }
+                        );
+
+                        this.requestQueue.add(objectRequest);
                     } catch (Exception e){
                        textView.setText(e.getMessage());
                     }
