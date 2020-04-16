@@ -1,4 +1,9 @@
+plugins {
+    id "com.zeroc.gradle.ice-builder.slice" version "1.4.7"
+}
+
 apply plugin: 'com.android.application'
+apply plugin: 'slice'
 
 android {
     compileSdkVersion 29
@@ -23,6 +28,12 @@ android {
 
 }
 
+slice {
+    java {
+        srcDir = '.'
+    }
+}
+
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'de.mrmaffen:libvlc-android:2.1.12@aar'
@@ -36,4 +47,5 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
     implementation 'com.android.volley:volley:1.1.0'
     implementation 'com.google.code.gson:gson:2.4'
+    implementation 'com.zeroc:ice:3.7.3'
 }
