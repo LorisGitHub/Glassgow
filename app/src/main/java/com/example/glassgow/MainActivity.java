@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.speech.RecognizerIntent;
+import android.telecom.Call;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -20,6 +21,8 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
+import com.example.glassgow.ice.CallBackUrl;
+import com.example.glassgow.ice.MusicPlayer;
 
 import org.json.JSONObject;
 import org.videolan.libvlc.LibVLC;
@@ -30,13 +33,12 @@ import java.util.ArrayList;
 import java.util.Locale;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements CallBackUrl {
 
     private static MainActivity instance = null;
 
     private MediaPlayer vlc;
     private LibVLC libVLC;
-    private String url = "http://192.168.1.24:8080/0.mp3";
 
     private Button playBtn;
     private Button pauseBtn;
@@ -74,10 +76,10 @@ public class MainActivity extends AppCompatActivity {
         this.libVLC = new LibVLC(this);
         this.vlc = new MediaPlayer(libVLC);
 
-        final Media media = new Media(libVLC, Uri.parse(url));
-        this.vlc.setMedia(media);
+        //final Media media = new Media(libVLC, Uri.parse(url));
+        //this.vlc.setMedia(media);
 
-        this.vlc.setEventListener(new MediaPlayer.EventListener() {
+       /* this.vlc.setEventListener(new MediaPlayer.EventListener() {
             @Override
             public void onEvent(MediaPlayer.Event event) {
                 if(event.type == MediaPlayer.Event.TimeChanged){
@@ -89,13 +91,12 @@ public class MainActivity extends AppCompatActivity {
 
                 }
             }
-        });
+        });*/
 
         playBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                vlc.play();
-                textView.setText("Playing");
+                onClickButton( );
             }
         });
 
@@ -194,5 +195,16 @@ public class MainActivity extends AppCompatActivity {
                 break;
             }
         }
+    }
+
+    @Override
+    public void onServerResult(String urlToStream) {
+        final Media media = new Media(libVLC, Uri.parse(urlToStream));
+        this.vlc.setMedia(media);
+        this.vlc.play();
+    }
+
+    private void onClickButton() {
+        MusicPlayer.getInstance().play("Konosuba", this);
     }
 }
