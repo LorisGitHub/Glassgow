@@ -2,14 +2,17 @@ package com.example.glassgow;
 
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.speech.RecognizerIntent;
-import android.telecom.Call;
-import android.util.Log;
+import android.util.Base64;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -32,7 +35,10 @@ import org.videolan.libvlc.LibVLC;
 import org.videolan.libvlc.Media;
 import org.videolan.libvlc.MediaPlayer;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Locale;
 
 
@@ -48,12 +54,18 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
     private Button stopBtn;
     private Button resetBtn;
 
+    private ImageView imageView;
     private ImageButton imageButton;
+
+    private CountDownTimer countDownTimer;
 
     private TextView textView;
     private TextView textOutput;
 
+    private TextView timer;
     private SeekBar seekBar;
+
+    SimpleDateFormat format = new SimpleDateFormat("mm:ss");
 
     RequestQueue requestQueue;
     String URL = "http://192.168.1.10:3019/parse";
@@ -72,8 +84,10 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
         stopBtn = findViewById(R.id.stopBtn);
         resetBtn = findViewById(R.id.resetBtn);
 
+        imageView = findViewById(R.id.imageView);
         imageButton = findViewById(R.id.imageButton);
 
+        timer = findViewById(R.id.textView5);
         seekBar = findViewById(R.id.seekBar);
         textView = findViewById(R.id.textView2);
         textOutput = findViewById(R.id.textView3);
@@ -102,6 +116,7 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
             @Override
             public void onClick(View v) {
                 vlc.play();
+                countDownTimer.start();
                 textView.setText("Playing...");
             }
         });
@@ -110,6 +125,7 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
             @Override
             public void onClick(View v) {
                 vlc.pause();
+                countDownTimer.cancel();
                 textView.setText("Paused");
             }
         });
@@ -118,6 +134,7 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
             @Override
             public void onClick(View v) {
                 vlc.stop();
+                countDownTimer.cancel();
                 textView.setText("Stopped");
             }
         });
@@ -188,7 +205,36 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
                                                     JSONObject jsonObject = (JSONObject) response.get("track");
                                                     currentMusic = new Music(jsonObject.getString("name"), jsonObject.getString("artist"), jsonObject.getString("duration"), jsonObject.getString("type"));
                                                     textView.setText("Playing...");
-                                                    textOutput.setText(currentMusic.getName() + " / " + currentMusic.getArtist());
+
+                                                    Date date = format.parse(currentMusic.getDuration());
+                                                    int minutes = date.getMinutes();
+                                                    int secondes = date.getSeconds();
+                                                    int timeInMillisecondes = (minutes*60 + secondes)*1000;
+                                                    textOutput.setText(currentMusic.getName().replace("_", " ") + " - " + currentMusic.getArtist() + " - " + currentMusic.getType() );
+
+                                                    timer.setText(minutes + "m" + secondes + "s");
+                                                    seekBar.setProgress(0);
+                                                    seekBar.setMax((minutes*60 + secondes)*1000);
+
+                                                    countDownTimer = new CountDownTimer(timeInMillisecondes, 1000) {
+                                                        @Override
+                                                        public void onTick(long millisUntilFinished) {
+                                                            timer.setText(timeInMillisecondes - (int) millisUntilFinished + "/" + minutes + "m" + secondes + "s");
+                                                            seekBar.setProgress( timeInMillisecondes - (int) millisUntilFinished);
+                                                        }
+
+                                                        @Override
+                                                        public void onFinish() {
+                                                            textView.setText("Finished");
+                                                        }
+                                                    };
+                                                    countDownTimer.start();
+
+                                                    String pureBase64 = jsonObject.getString("lob").substring(jsonObject.getString("lob").indexOf(",") + 1);
+                                                    byte[] decodedString = android.util.Base64.decode(pureBase64, Base64.DEFAULT);
+                                                    Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+                                                    imageView.setImageBitmap(decodedByte);
+
                                                     onServerResponse(currentMusic.getName());
                                                 } else if(response.getString("action").equals("Pause")){
                                                     vlc.pause();
@@ -198,7 +244,7 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
                                                     textView.setText("Stopped");
                                                 }
                                             }
-                                        } catch (JSONException e) {
+                                        } catch (JSONException | ParseException e) {
                                             e.printStackTrace();
                                         }
                                     }
