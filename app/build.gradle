@@ -31,6 +31,7 @@ android {
 slice {
     java {
         srcDir = '.'
+        compat = true;
     }
 }
 
@@ -47,5 +48,5 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
     implementation 'com.android.volley:volley:1.1.0'
     implementation 'com.google.code.gson:gson:2.4'
-    implementation 'com.zeroc:ice:3.7.3'
+    implementation 'com.zeroc:ice-compat:3.7.3'
 }
