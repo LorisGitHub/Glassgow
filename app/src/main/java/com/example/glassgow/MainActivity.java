@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.speech.RecognizerIntent;
 import android.telecom.Call;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -21,9 +22,11 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
+import com.example.glassgow.Music.Music;
 import com.example.glassgow.ice.CallBackUrl;
 import com.example.glassgow.ice.MusicPlayer;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.videolan.libvlc.LibVLC;
 import org.videolan.libvlc.Media;
@@ -54,6 +57,8 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
 
     RequestQueue requestQueue;
     String URL = "http://192.168.1.10:3019/parse";
+
+    private Music currentMusic;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,7 +101,8 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
         playBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                onClickButton( );
+                vlc.play();
+                textView.setText("Playing...");
             }
         });
 
@@ -175,7 +181,26 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
                                 new Response.Listener<JSONObject>() {
                                     @Override
                                     public void onResponse(JSONObject response) {
-                                        textView.setText(response.toString());
+                                        try {
+                                            if(response != null )
+                                            {
+                                                if(response.getString("action").equals("Play")){
+                                                    JSONObject jsonObject = (JSONObject) response.get("track");
+                                                    currentMusic = new Music(jsonObject.getString("name"), jsonObject.getString("artist"), jsonObject.getString("duration"), jsonObject.getString("type"));
+                                                    textView.setText("Playing...");
+                                                    textOutput.setText(currentMusic.getName() + " / " + currentMusic.getArtist());
+                                                    onServerResponse(currentMusic.getName());
+                                                } else if(response.getString("action").equals("Pause")){
+                                                    vlc.pause();
+                                                    textView.setText("Paused");
+                                                } else if(response.getString("action").equals("Stop")){
+                                                    vlc.stop();
+                                                    textView.setText("Stopped");
+                                                }
+                                            }
+                                        } catch (JSONException e) {
+                                            e.printStackTrace();
+                                        }
                                     }
                                 },
                                 new Response.ErrorListener() {
@@ -204,7 +229,7 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
         this.vlc.play();
     }
 
-    private void onClickButton() {
-        MusicPlayer.getInstance().play("Konosuba", this);
+    private void onServerResponse(String trackName) {
+        MusicPlayer.getInstance().play(trackName, this);
     }
 }
