@@ -115,35 +115,28 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
         playBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                vlc.play();
-                countDownTimer.start();
-                textView.setText("Playing...");
+                playButtonHandler();
             }
         });
 
         pauseBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                vlc.pause();
-                countDownTimer.cancel();
-                textView.setText("Paused");
+                pauseButtonHandler();
             }
         });
 
         stopBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                vlc.stop();
-                countDownTimer.cancel();
-                textView.setText("Stopped");
+                stopButtonHandler();
             }
         });
 
         resetBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                vlc.setTime(0);
-                vlc.play();
+                resetButtonHandler();
             }
         });
 
@@ -189,8 +182,6 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
                                 .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
                         String text = result.get(0);
 
-                        textOutput.setText(URL + "/" + text);
-
                         JsonObjectRequest objectRequest = new JsonObjectRequest(
                                 Request.Method.GET,
                                 this.URL + "/" + text,
@@ -198,55 +189,7 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
                                 new Response.Listener<JSONObject>() {
                                     @Override
                                     public void onResponse(JSONObject response) {
-                                        try {
-                                            if(response != null )
-                                            {
-                                                if(response.getString("action").equals("Play")){
-                                                    JSONObject jsonObject = (JSONObject) response.get("track");
-                                                    currentMusic = new Music(jsonObject.getString("name"), jsonObject.getString("artist"), jsonObject.getString("duration"), jsonObject.getString("type"));
-                                                    textView.setText("Playing...");
-
-                                                    Date date = format.parse(currentMusic.getDuration());
-                                                    int minutes = date.getMinutes();
-                                                    int secondes = date.getSeconds();
-                                                    int timeInMillisecondes = (minutes*60 + secondes)*1000;
-                                                    textOutput.setText(currentMusic.getName().replace("_", " ") + " - " + currentMusic.getArtist() + " - " + currentMusic.getType() );
-
-                                                    timer.setText(minutes + "m" + secondes + "s");
-                                                    seekBar.setProgress(0);
-                                                    seekBar.setMax((minutes*60 + secondes)*1000);
-
-                                                    countDownTimer = new CountDownTimer(timeInMillisecondes, 1000) {
-                                                        @Override
-                                                        public void onTick(long millisUntilFinished) {
-                                                            timer.setText(timeInMillisecondes - (int) millisUntilFinished + "/" + minutes + "m" + secondes + "s");
-                                                            seekBar.setProgress( timeInMillisecondes - (int) millisUntilFinished);
-                                                        }
-
-                                                        @Override
-                                                        public void onFinish() {
-                                                            textView.setText("Finished");
-                                                        }
-                                                    };
-                                                    countDownTimer.start();
-
-                                                    String pureBase64 = jsonObject.getString("lob").substring(jsonObject.getString("lob").indexOf(",") + 1);
-                                                    byte[] decodedString = android.util.Base64.decode(pureBase64, Base64.DEFAULT);
-                                                    Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
-                                                    imageView.setImageBitmap(decodedByte);
-
-                                                    onServerResponse(currentMusic.getName());
-                                                } else if(response.getString("action").equals("Pause")){
-                                                    vlc.pause();
-                                                    textView.setText("Paused");
-                                                } else if(response.getString("action").equals("Stop")){
-                                                    vlc.stop();
-                                                    textView.setText("Stopped");
-                                                }
-                                            }
-                                        } catch (JSONException | ParseException e) {
-                                            e.printStackTrace();
-                                        }
+                                        onResponseFromParsingServer(response);
                                     }
                                 },
                                 new Response.ErrorListener() {
@@ -268,6 +211,29 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
         }
     }
 
+    public void initializeTimer(){
+        countDownTimer = new CountDownTimer(currentMusic.getTimeInMillis(), 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                currentMusic.setMillisUntilFinished(currentMusic.getMillisUntilFinished() + 1000);
+                int m = (currentMusic.getMillisUntilFinished()/1000)/60;
+                int s = (currentMusic.getMillisUntilFinished()/1000)%60;
+                timer.setText(m + ":" + s + "/" + currentMusic.getMinutes() + ":" + currentMusic.getSecondes());
+                seekBar.setProgress( currentMusic.getMillisUntilFinished()/1000);
+                if(m == currentMusic.getMinutes() && s == currentMusic.getSecondes()){
+                    onFinish();
+                }
+            }
+
+            @Override
+            public void onFinish() {
+                currentMusic = null;
+                countDownTimer.cancel();
+                textView.setText("Finished");
+            }
+        };
+    }
+
     @Override
     public void onServerResult(String urlToStream) {
         final Media media = new Media(libVLC, Uri.parse(urlToStream));
@@ -277,5 +243,75 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
 
     private void onServerResponse(String trackName) {
         MusicPlayer.getInstance().play(trackName, this);
+    }
+
+    private void playButtonHandler(){
+        if(currentMusic != null){
+            vlc.play();
+            countDownTimer.start();
+            textView.setText("Playing...");
+        }
+    }
+
+    private void pauseButtonHandler(){
+        if(currentMusic != null){
+            vlc.pause();
+            countDownTimer.cancel();
+            textView.setText("Paused");
+        }
+    }
+
+    private void stopButtonHandler(){
+        if(currentMusic != null){
+            vlc.stop();
+            countDownTimer.cancel();
+            textView.setText("Stopped");
+        }
+    }
+
+    private void resetButtonHandler(){
+        if(currentMusic != null){
+            vlc.setTime(0);
+            vlc.play();
+        }
+    }
+
+    private void onResponseFromParsingServer(JSONObject response){
+        try {
+            if(response != null )
+            {
+                if(response.getString("action").equals("Play")){
+                    JSONObject jsonObject = (JSONObject) response.get("track");
+                    currentMusic = new Music(jsonObject.getString("name"), jsonObject.getString("artist"), jsonObject.getString("duration"), jsonObject.getString("type"));
+                    textView.setText("Playing...");
+
+                    Date date = format.parse(currentMusic.getDuration());
+                    currentMusic.setMinutes(date.getMinutes());
+                    currentMusic.setSecondes(date.getSeconds());
+                    currentMusic.setTimeInMillis((currentMusic.getMinutes()*60 + currentMusic.getSecondes())*1000);
+                    textOutput.setText(currentMusic.getName().replace("_", " ") + " - " + currentMusic.getArtist() + " - " + currentMusic.getType() );
+
+                    timer.setText(currentMusic.getTimeInMillis() + " 0:00 / " + currentMusic.getMinutes() + ":" + currentMusic.getSecondes());
+                    seekBar.setProgress(0);
+                    seekBar.setMax(currentMusic.getTimeInMillis()/1000);
+
+                    initializeTimer();
+                    countDownTimer.start();
+
+                    String pureBase64 = jsonObject.getString("lob").substring(jsonObject.getString("lob").indexOf(",") + 1);
+                    byte[] decodedString = android.util.Base64.decode(pureBase64, Base64.DEFAULT);
+                    Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+                    imageView.setImageBitmap(decodedByte);
+
+                    onServerResponse(currentMusic.getName());
+                } else if(response.getString("action").equals("Pause")){
+                    pauseButtonHandler();
+                } else if(response.getString("action").equals("Stop")){
+                    stopButtonHandler();
+                }
+            }
+        } catch (JSONException | ParseException e) {
+            e.printStackTrace();
+        }
     }
 }
