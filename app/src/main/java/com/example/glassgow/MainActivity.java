@@ -59,12 +59,14 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
     private ImageButton nextBtn;
 
     private ImageView imageView;
+    private ImageView prevImage;
+    private ImageView nextImage;
     private ImageButton imageButton;
 
     private CountDownTimer countDownTimer;
 
-    private TextView textView;
-    private TextView textOutput;
+    private TextView statusText;
+    private TextView trackInfoText;
 
     private TextView timer;
     private SeekBar seekBar;
@@ -91,6 +93,8 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
         nextBtn = findViewById(R.id.nextButton);
 
         imageView = findViewById(R.id.imageView);
+        prevImage = findViewById(R.id.prevImg);
+        nextImage = findViewById(R.id.nextImg);
         imageButton = findViewById(R.id.imageButton);
 
         timer = findViewById(R.id.textView5);
@@ -98,8 +102,8 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
         seekBar = findViewById(R.id.seekBar);
         seekBar.setClickable(false);
 
-        textView = findViewById(R.id.textView2);
-        textOutput = findViewById(R.id.textView3);
+        statusText = findViewById(R.id.textView2);
+        trackInfoText = findViewById(R.id.textView3);
 
         this.libVLC = new LibVLC(this);
         this.vlc = new MediaPlayer(libVLC);
@@ -236,7 +240,7 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
             public void onFinish() {
                 currentMusic = null;
                 countDownTimer.cancel();
-                textView.setText("Finished");
+                statusText.setText("Finished");
             }
         };
     }
@@ -256,7 +260,7 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
         if(currentMusic != null){
             vlc.play();
             countDownTimer.start();
-            textView.setText("Playing...");
+            statusText.setText("Playing...");
         }
     }
 
@@ -264,7 +268,7 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
         if(currentMusic != null){
             vlc.pause();
             countDownTimer.cancel();
-            textView.setText("Paused");
+            statusText.setText("Paused");
         }
     }
 
@@ -272,7 +276,7 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
         if(currentMusic != null){
             vlc.stop();
             countDownTimer.cancel();
-            textView.setText("Stopped");
+            statusText.setText("Stopped");
         }
     }
 
@@ -288,6 +292,7 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
             vlc.pause();
             countDownTimer.cancel();
             currentMusic = currentMusic.getPreviousMusic();
+            setPrevAndNextImg();
             currentMusic.setMillisUntilFinished(0);
             initializeTextAndTimer();
             imageView.setImageBitmap(currentMusic.getLob());
@@ -300,10 +305,24 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
             vlc.pause();
             countDownTimer.cancel();
             currentMusic = currentMusic.getNextMusic();
+            setPrevAndNextImg();
             currentMusic.setMillisUntilFinished(0);
             initializeTextAndTimer();
             imageView.setImageBitmap(currentMusic.getLob());
             onServerResponse(currentMusic.getName());
+        }
+    }
+
+    private void setPrevAndNextImg(){
+        if(currentMusic.getPreviousMusic() != null){
+            prevImage.setImageBitmap(currentMusic.getPreviousMusic().getLob());
+        } else {
+            prevImage.setImageBitmap(null);
+        }
+        if(currentMusic.getNextMusic() != null){
+            nextImage.setImageBitmap(currentMusic.getNextMusic().getLob());
+        } else {
+            nextImage.setImageBitmap(null);
         }
     }
 
@@ -320,6 +339,7 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
                         currentMusic.setNextMusic(newMusic);
                         newMusic.setPreviousMusic(currentMusic);
                         currentMusic = newMusic;
+                        prevImage.setImageBitmap(currentMusic.getPreviousMusic().getLob());
                     }
 
                     initializeTextAndTimer();
@@ -336,6 +356,10 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
                     pauseButtonHandler();
                 } else if(response.getString("action").equals("Stop")){
                     stopButtonHandler();
+                } else if(response.getString("action").equals("Prev")){
+                    prevButtonHandler();
+                } else if(response.getString("action").equals("Next")){
+                    nextButtonHandler();
                 }
             }
         } catch (JSONException e) {
@@ -345,13 +369,13 @@ public class MainActivity extends AppCompatActivity implements CallBackUrl {
 
     private void initializeTextAndTimer(){
         try{
-            textView.setText("Playing...");
+            statusText.setText("Playing...");
 
             Date date = format.parse(currentMusic.getDuration());
             currentMusic.setMinutes(date.getMinutes());
             currentMusic.setSecondes(date.getSeconds());
             currentMusic.setTimeInMillis((currentMusic.getMinutes()*60 + currentMusic.getSecondes())*1000);
-            textOutput.setText(currentMusic.getName().replace("_", " ") + " - " + currentMusic.getArtist() + " - " + currentMusic.getType() );
+            trackInfoText.setText(currentMusic.getName().replace("_", " ") + " - " + currentMusic.getArtist() + " - " + currentMusic.getType() );
 
             timer.setText(currentMusic.getTimeInMillis() + " 0:00 / " + currentMusic.getMinutes() + ":" + currentMusic.getSecondes());
             seekBar.setProgress(0);

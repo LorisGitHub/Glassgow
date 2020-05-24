@@ -16,8 +16,7 @@
         android:layout_height="330dp"
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="50dp"
-        android:src="@mipmap/ic_launcher"
-        android:contentDescription="TODO" />
+        android:src="@mipmap/ic_launcher"/>
 
     <TextView
         android:id="@+id/textView3"
@@ -47,6 +46,12 @@
         android:gravity="center"
         android:orientation="horizontal">
 
+        <ImageView
+            android:id="@+id/prevImg"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginRight="20dp"/>
+
         <ImageButton
             android:id="@+id/prevButton"
             android:layout_width="50dp"
@@ -71,6 +76,12 @@
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:background="@android:drawable/ic_media_next" />
+
+        <ImageView
+            android:id="@+id/nextImg"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginLeft="20dp" />
 
     </LinearLayout>
 
